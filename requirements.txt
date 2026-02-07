@@ -1,0 +1,5 @@
+Flask==3.0.2
+requests==2.31.0
+deep-translator==1.11.4
+gTTS==2.5.1
+cohere==5.3.2

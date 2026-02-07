@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCR Result</title>
+
+    <!-- You already have this CSS -->
+    <link rel="stylesheet" href="/static/result.css">
+</head>
+<body>
+
+<h2>✅ Process Completed</h2>
+
+<div class="result-box">
+
+    <!-- EXTRACTED TEXT -->
+    <h3>📜 Extracted Text</h3>
+    <pre>{{ extracted_text }}</pre>
+
+    <!-- SUMMARY -->
+    <h3>📝 Summarized Text (English)</h3>
+    <pre>{{ summarized_text }}</pre>
+
+    <!-- TAMIL TRANSLATION -->
+    <h3>🌐 Tamil Translation</h3>
+    <pre>{{ tamil_text }}</pre>
+
+    <!-- ENGLISH AUDIO -->
+    <h3>🔊 English Audio</h3>
+
+    <div class="voice-wave" id="wave-en">
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <audio controls id="audio-en">
+        <source src="/audio/en?text={{ summarized_text | urlencode }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <br>
+    <a href="/audio/en?text={{ summarized_text | urlencode }}">
+        ⬇️ Download English Audio
+    </a>
+
+    <hr>
+
+    <!-- TAMIL AUDIO -->
+    <h3>🔊 Tamil Audio</h3>
+
+    <div class="voice-wave tamil" id="wave-ta">
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <audio controls id="audio-ta">
+        <source src="/audio/ta?text={{ tamil_text | urlencode }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <br>
+    <a href="/audio/ta?text={{ tamil_text | urlencode }}">
+        ⬇️ Download Tamil Audio
+    </a>
+
+</div>
+
+<script>
+function bindWave(audioId, waveId) {
+    const audio = document.getElementById(audioId);
+    const wave = document.getElementById(waveId);
+
+    audio.addEventListener('play', () => wave.classList.add('active'));
+    audio.addEventListener('pause', () => wave.classList.remove('active'));
+    audio.addEventListener('ended', () => wave.classList.remove('active'));
+}
+
+bindWave('audio-en', 'wave-en');
+bindWave('audio-ta', 'wave-ta');
+</script>
+
+</body>
+
+</html>
+

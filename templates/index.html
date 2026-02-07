@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR Summarizer with Camera</title>
+    <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+    <h2>📸 OCR + Summarizer + Dual Audio (English + Tamil)</h2>
+
+    <div class="upload-box">
+        <form id="uploadForm" action="/process" method="POST" enctype="multipart/form-data">
+            <label><b>📂 Upload Image</b></label><br>
+            <input type="file" name="image" accept="image/*"><br>
+
+            <hr>
+            <label><b>🎥 Or Capture Using Camera</b></label><br>
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" style="display:none;"></canvas><br>
+
+            <button type="button" id="startCameraBtn">Open Camera</button>
+            <button type="button" id="captureBtn" style="display:none;">Capture Photo</button>
+            <button type="button" id="closeCameraBtn" style="display:none; background-color:red; color:white;">Close Camera</button>
+
+            <input type="hidden" name="captured_image" id="captured_image">
+
+            <br><br>
+            <button type="submit">Process</button>
+        </form>
+    </div>
+
+    <script>
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const capturedInput = document.getElementById('captured_image');
+        const uploadForm = document.getElementById('uploadForm');
+        let stream;
+        startCameraBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                captureBtn.style.display = 'inline-block';
+                closeCameraBtn.style.display = 'inline-block';
+                startCameraBtn.style.display = 'none';
+            } catch (err) {
+                console.error(err);
+                alert("Camera access denied or unavailable! Please allow camera permission and use HTTPS or localhost.");
+            }
+        });
+        captureBtn.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stream.getTracks().forEach(track => track.stop());
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            captureBtn.style.display = 'none';
+            closeCameraBtn.style.display = 'none';
+            const imageData = canvas.toDataURL('image/png');
+            capturedInput.value = imageData;
+        });
+        closeCameraBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.style.display = 'none';
+            captureBtn.style.display = 'none';
+            closeCameraBtn.style.display = 'none';
+            startCameraBtn.style.display = 'inline-block';
+        });
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+
+            if (capturedInput.value) {
+                const base64 = capturedInput.value.split(',')[1];
+                const blob = base64ToBlob(base64, 'image/png');
+                formData.append('image', blob, 'captured.png');
+            }
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                const html = await response.text();
+                document.body.innerHTML = html;
+            } catch (err) {
+                alert('Error uploading image: ' + err);
+            }
+        });
+        function base64ToBlob(base64, type = 'image/png') {
+            const binary = atob(base64);
+            const array = [];
+            for (let i = 0; i < binary.length; i++) {
+                array.push(binary.charCodeAt(i));
+            }
+            return new Blob([new Uint8Array(array)], { type });
+        }
+    </script>
+</body>
+</html>
+
+
+
+
