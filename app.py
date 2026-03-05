@@ -11,14 +11,14 @@ app = Flask(__name__)
 # ==========================
 # OCR (OCR.Space)
 # ==========================
-def extract_text_from_image(image_bytes):
+def extract_text_from_image(image_bytes, language):
     try:
         response = requests.post(
             "https://api.ocr.space/parse/image",
             files={"file": ("image.png", image_bytes)},
             data={
                 "apikey": "K89919669988957",
-                "language": "eng"
+                "language": language
             },
             timeout=30
         )
@@ -29,7 +29,11 @@ def extract_text_from_image(image_bytes):
             return result.get("ErrorMessage", ["OCR failed"])[0]
 
         parsed = result.get("ParsedResults")
-        return parsed[0]["ParsedText"].strip() if parsed else "No text detected"
+
+        if parsed:
+            return parsed[0]["ParsedText"].strip()
+
+        return "No text detected"
 
     except Exception as e:
         return f"OCR Exception: {e}"
@@ -39,7 +43,9 @@ def extract_text_from_image(image_bytes):
 # COHERE SUMMARY
 # ==========================
 def summarize_text(text):
+
     try:
+
         if not text or len(text.split()) < 30:
             return text
 
@@ -64,6 +70,7 @@ Text:
         return response.text.strip()
 
     except Exception as e:
+
         return f"Cohere Error: {e}"
 
 
@@ -71,19 +78,27 @@ Text:
 # TRANSLATION
 # ==========================
 def translate_to_tamil(text):
+
     try:
+
         return GoogleTranslator(source="en", target="ta").translate(text)
+
     except Exception as e:
+
         return f"Translation Error: {e}"
 
 
 # ==========================
-# TTS (IN-MEMORY)
+# TTS
 # ==========================
 def generate_audio(text, lang):
+
     audio = BytesIO()
+
     gTTS(text=text, lang=lang).write_to_fp(audio)
+
     audio.seek(0)
+
     return audio
 
 
@@ -92,27 +107,37 @@ def generate_audio(text, lang):
 # ==========================
 @app.route("/")
 def index():
+
     return render_template("index.html")
 
 
 @app.route("/process", methods=["POST"])
 def process():
+
     image_bytes = None
 
-    # Camera image (base64)
+    ocr_language = request.form.get("ocr_language", "eng")
+
+    # Camera image
     if request.form.get("captured_image"):
+
         base64_data = request.form["captured_image"].split(",")[1]
+
         image_bytes = base64.b64decode(base64_data)
 
-    # File upload
+    # Uploaded image
     elif "image" in request.files:
+
         image_bytes = request.files["image"].read()
 
     if not image_bytes:
+
         return "No image provided"
 
-    extracted_text = extract_text_from_image(image_bytes)
+    extracted_text = extract_text_from_image(image_bytes, ocr_language)
+
     summarized_text = summarize_text(extracted_text)
+
     tamil_text = translate_to_tamil(summarized_text)
 
     return render_template(
@@ -125,7 +150,9 @@ def process():
 
 @app.route("/audio/en")
 def audio_en():
+
     text = request.args.get("text", "")
+
     return send_file(
         generate_audio(text, "en"),
         mimetype="audio/mpeg",
@@ -136,7 +163,9 @@ def audio_en():
 
 @app.route("/audio/ta")
 def audio_ta():
+
     text = request.args.get("text", "")
+
     return send_file(
         generate_audio(text, "ta"),
         mimetype="audio/mpeg",
